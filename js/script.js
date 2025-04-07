@@ -5,16 +5,22 @@ function randomize() { $('h1').innerText = random() + ' Emoji64 ' + random() }
 window.addEventListener('DOMContentLoaded', randomize)
 $('h1').addEventListener('click', randomize)
 
-$('#encode').addEventListener('input', function (event) {
+$('#encode').addEventListener('input', async function (event) {
   var value = event.target.value
-  $('#decode').value = window.emoji64.auto(value)
-  $('#copy').innerText = 'Copy'
-  if (!value) {
+  if (value) {
+    try {
+      $('#decode').value = await window.emoji64.auto(value)
+      $('#copy').innerText = 'Copy'
+      $('#clear').classList.remove('hidden')
+      $('#copy').classList.remove('hidden')
+    } catch (error) {
+      console.error('Encoding error:', error)
+      $('#decode').value = 'Error: ' + error.message
+    }
+  } else {
+    $('#decode').value = ''
     $('#clear').classList.add('hidden')
     $('#copy').classList.add('hidden')
-  } else {
-    $('#clear').classList.remove('hidden')
-    $('#copy').classList.remove('hidden')
   }
 })
 
