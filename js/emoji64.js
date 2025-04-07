@@ -1,7 +1,7 @@
 (function() {
   var fcp = String.fromCodePoint
   var emojiList = []
-  var nonceEmoji = ''
+  var currentMapping = new Map()
   
   // 加载 emoji 列表
   function loadEmojiList() {
@@ -18,40 +18,66 @@
     }
   }
 
-  // 获取随机 emoji
-  function getRandomEmoji() {
-    if (emojiList.length === 0) {
-      loadEmojiList()
+  // 生成随机映射
+  function generateMapping() {
+    currentMapping.clear()
+    const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const shuffledEmojis = [...emojiList].sort(() => Math.random() - 0.5)
+    
+    for (let i = 0; i < base64Chars.length; i++) {
+      currentMapping.set(base64Chars[i], shuffledEmojis[i])
     }
+  }
+
+  // 获取随机 emoji 作为 nonce
+  function getRandomNonce() {
     return emojiList[Math.floor(Math.random() * emojiList.length)]
   }
 
-  // 生成随机 nonce
-  function generateNonce() {
-    return getRandomEmoji()
-  }
-
   function encode(txt) {
-    var result = btoa(encodeURIComponent(txt))
-      .split('')
-      .map(c => fcp(c.charCodeAt(0) + 128464))
-      .join('')
-    return result + generateNonce()
+    if (emojiList.length === 0) {
+      loadEmojiList().then(() => {
+        generateMapping()
+      })
+    }
+    
+    if (currentMapping.size === 0) {
+      generateMapping()
+    }
+
+    const base64 = btoa(encodeURIComponent(txt))
+    const result = base64.split('').map(c => currentMapping.get(c)).join('')
+    return result + getRandomNonce()
   }
 
   function decode(emoji) {
+    if (emojiList.length === 0) {
+      loadEmojiList().then(() => {
+        generateMapping()
+      })
+    }
+    
+    if (currentMapping.size === 0) {
+      generateMapping()
+    }
+
     // 移除最后一个字符（nonce）
     emoji = emoji.slice(0, -2)
-    var b64 = '', cp, i = 0
-    while (cp = emoji.codePointAt(i)) {
-      b64 += fcp(cp - 128464)
-      i += 2
+    
+    // 创建反向映射
+    const reverseMapping = new Map()
+    for (const [key, value] of currentMapping) {
+      reverseMapping.set(value, key)
     }
-    return decodeURIComponent(atob(b64))
+
+    const base64 = emoji.split('').map(e => reverseMapping.get(e)).join('')
+    return decodeURIComponent(atob(base64))
   }
 
   function auto(str) {
-    return str.codePointAt(0) >= 128464 ? decode(str) : encode(str)
+    // 检查是否已经是 emoji 编码（通过检查是否包含 emoji 列表中的字符）
+    const isEncoded = emojiList.some(e => str.includes(e))
+    return isEncoded ? decode(str) : encode(str)
   }
 
   var e64 = { encode, decode, auto }
