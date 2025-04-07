@@ -51,6 +51,112 @@
     }
   }
 
+  // 同步版本的编码函数
+  function encodeSync(txt) {
+    let result = '';
+    try {
+      // 尝试使用同步方式加载 emoji 列表
+      let emojiList;
+      if (typeof require !== 'undefined') {
+        emojiList = require('../assets/emoji.json');
+      } else if (window.emojiList) {
+        emojiList = window.emojiList;
+      } else {
+        throw new Error('Emoji list not loaded');
+      }
+      
+      const mapping = generateMapping(emojiList);
+      const base64 = stringToBase64(encodeURIComponent(txt));
+      result = base64.split('').map(c => mapping.get(c)).join('');
+      
+      // 将映射信息编码为 base64
+      const mappingInfo = Array.from(mapping.entries())
+        .map(([key, value]) => `${key}:${value}`)
+        .join(',');
+      const mappingBase64 = stringToBase64(mappingInfo);
+      
+      // 将映射信息转换为 emoji 并添加到结果末尾
+      const mappingEmoji = mappingBase64.split('').map(c => 
+        emojiList[Math.floor(Math.random() * emojiList.length)]
+      ).join('');
+      
+      result += mappingEmoji;
+    } catch (e) {
+      console.error('Error in encodeSync:', e);
+      result = txt; // 出错时返回原始文本
+    }
+    return result;
+  }
+
+  // 同步版本的解码函数
+  function decodeSync(emoji) {
+    let result = '';
+    try {
+      // 尝试使用同步方式加载 emoji 列表
+      let emojiList;
+      if (typeof require !== 'undefined') {
+        emojiList = require('../assets/emoji.json');
+      } else if (window.emojiList) {
+        emojiList = window.emojiList;
+      } else {
+        throw new Error('Emoji list not loaded');
+      }
+      
+      // 提取映射信息（最后一部分）
+      const mappingLength = Math.floor(emoji.length / 2);  // 假设每个 emoji 占 2 个字符
+      const encodedContent = emoji.slice(0, -mappingLength);
+      const mappingEmoji = emoji.slice(-mappingLength);
+      
+      // 从 emoji 中提取映射信息
+      const mappingInfo = mappingEmoji.split('').map(e => 
+        emojiList[Math.floor(Math.random() * emojiList.length)]
+      ).join('');
+      
+      // 重建映射
+      const mapping = new Map();
+      mappingInfo.split(',').forEach(pair => {
+        const [key, value] = pair.split(':');
+        mapping.set(key, value);
+      });
+      
+      // 创建反向映射
+      const reverseMapping = new Map();
+      for (const [key, value] of mapping) {
+        reverseMapping.set(value, key);
+      }
+      
+      const base64 = encodedContent.split('').map(e => reverseMapping.get(e)).join('');
+      result = decodeURIComponent(base64ToString(base64));
+    } catch (e) {
+      console.error('Error in decodeSync:', e);
+      result = emoji; // 出错时返回原始文本
+    }
+    return result;
+  }
+
+  // 同步版本的自动检测函数
+  function autoSync(str) {
+    try {
+      // 尝试使用同步方式加载 emoji 列表
+      let emojiList;
+      if (typeof require !== 'undefined') {
+        emojiList = require('../assets/emoji.json');
+      } else if (window.emojiList) {
+        emojiList = window.emojiList;
+      } else {
+        throw new Error('Emoji list not loaded');
+      }
+      
+      // 检查是否已经是 emoji 编码
+      const isEncoded = emojiList.some(e => str.includes(e));
+      return isEncoded ? decodeSync(str) : encodeSync(str);
+    } catch (e) {
+      console.error('Error in autoSync:', e);
+      return str; // 出错时返回原始文本
+    }
+  }
+
+  // 异步版本的函数
   async function encode(txt) {
     // 每次编码都重新加载 emoji 列表
     const emojiList = await loadEmojiList()
@@ -111,7 +217,23 @@
     return isEncoded ? decode(str) : encode(str)
   }
 
-  var e64 = { encode, decode, auto }
+  // 预加载 emoji 列表并保存到全局变量
+  if (typeof window !== 'undefined') {
+    loadEmojiList().then(emojiList => {
+      window.emojiList = emojiList;
+    }).catch(err => {
+      console.error('Failed to load emoji list:', err);
+    });
+  }
+
+  var e64 = { 
+    encode, 
+    decode, 
+    auto,
+    encodeSync,
+    decodeSync,
+    autoSync
+  }
 
   if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     module.exports = e64
