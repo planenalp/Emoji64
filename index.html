@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preload" as="script" href="js/emoji64.js" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="images/favicon.png" />
+  <title>Emoji64</title>
+</head>
+<body>
+  <header>
+    <h1>Emoji64</h1>
+    <h2>the mood behind your message</h2>
+  </header>
+  <main>
+    <div>
+      <textarea autofocus id="encode" placeholder="Type or paste here..."></textarea>
+      <button id="clear" class="hidden">Clear</button>
+    </div>
+    <div>
+      <textarea id="decode" placeholder="Emoji translation will appear here..." readonly></textarea>
+      <button id="copy" class="hidden">Copy</button>
+    </div>
+  </main>
+  <footer>
+  </footer>
+  <script src="js/emoji64.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>
