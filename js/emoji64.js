@@ -24,19 +24,46 @@
     return mapping
   }
 
+  // 将字符串转换为 base64
+  function stringToBase64(str) {
+    if (typeof btoa !== 'undefined') {
+      // 浏览器环境
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+        function toSolidBytes(match, p1) {
+          return String.fromCharCode('0x' + p1);
+      }));
+    } else {
+      // Node.js 环境
+      return Buffer.from(str).toString('base64');
+    }
+  }
+
+  // 将 base64 转换为字符串
+  function base64ToString(base64) {
+    if (typeof atob !== 'undefined') {
+      // 浏览器环境
+      return decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    } else {
+      // Node.js 环境
+      return Buffer.from(base64, 'base64').toString();
+    }
+  }
+
   async function encode(txt) {
     // 每次编码都重新加载 emoji 列表
     const emojiList = await loadEmojiList()
     const mapping = generateMapping(emojiList)
     
-    const base64 = btoa(encodeURIComponent(txt))
+    const base64 = stringToBase64(encodeURIComponent(txt))
     const result = base64.split('').map(c => mapping.get(c)).join('')
     
     // 将映射信息编码为 base64
     const mappingInfo = Array.from(mapping.entries())
       .map(([key, value]) => `${key}:${value}`)
       .join(',')
-    const mappingBase64 = btoa(mappingInfo)
+    const mappingBase64 = stringToBase64(mappingInfo)
     
     // 将映射信息转换为 emoji 并添加到结果末尾
     const mappingEmoji = mappingBase64.split('').map(c => 
@@ -74,7 +101,7 @@
     }
     
     const base64 = encodedContent.split('').map(e => reverseMapping.get(e)).join('')
-    return decodeURIComponent(atob(base64))
+    return decodeURIComponent(base64ToString(base64))
   }
 
   async function auto(str) {
